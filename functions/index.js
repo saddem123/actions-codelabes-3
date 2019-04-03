@@ -63,10 +63,15 @@ const colorMap = {
 // Handle the Dialogflow intent named 'Default Welcome Intent'.
 app.intent('Default Welcome Intent', (conv) => {
   // Asks the user's permission to know their name, for personalization.
-  conv.ask(new Permission({
-    context: 'Hi there, to get to know you better',
-    permissions: 'NAME',
-  }));
+  const name = conv.user.storage.userName;
+  if (!name) {
+    conv.ask(new Permission({
+      context: 'Hi there, to get to know you better',
+     permissions: 'NAME',
+    }));
+  } else {
+    conv.ask(`Hi again, ${name}.what's your favorite color ?`);
+  }
 });
 
 // Handle the Dialogflow intent named 'actions_intent_PERMISSION'. If user
@@ -102,12 +107,6 @@ app.intent('favorite color', (conv, {color}) => {
       `<audio src="${audioSound}"></audio> ` +
       `Would you like to hear some fake colors?</speak>`);
     conv.ask(new Suggestions('Yes', 'No'));
-    // eslint-disable-next-line max-len
-    // conv.ask(new Suggestions('indigo taco', 'pink unicorn', 'blue grey coffee'));
-    /* conv.followup('favorite color - yes', {
-       // eslint-disable-next-line max-len
-       });
-    */
   }
 });
 
@@ -117,6 +116,18 @@ app.intent('favorite color', (conv, {color}) => {
 app.intent('favorite fake color', (conv, {fakeColor}) => {
   // Present user with the corresponding basic card and end the conversation.
   conv.close(`Here's the color`, new BasicCard(colorMap[fakeColor]));
+});
+// Handle the dialogflow NO_Input intent
+app.intent('action_intent_NO_INPUT', (conv)=> {
+  const repromptCount = parseInt(conv.arguments.get('REPROMPT_COUNT'));
+  if (repromptCount === 0) {
+    conv.ask('which color would you like to hear about ?');
+  } else if (repromptCount === 1) {
+    conv.ask('Please say the name of a color');
+  } else if (conv.arguments.get('IS_FINAL_REPROMPT')) {
+       // eslint-disable-next-line max-len
+       conv.close(`Sorry we're having trouble,Let's try this again later . Goodbye `);
+  }
 });
 
 // Set the DialogflowApp object to handle the HTTPS POST request.
